@@ -1,7 +1,6 @@
 # unused testvectors
 shabytetestvectors/*Monte.*
 shabytetestvectors/SHA224*
-shabytetestvectors/SHA256*
 shabytetestvectors/SHA384*
 shabytetestvectors/SHA512*
 

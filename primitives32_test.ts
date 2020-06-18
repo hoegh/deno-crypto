@@ -2,7 +2,7 @@ import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
 
 import { TestCase, paramtest} from "./parameterized_tests.ts"
 
-import {rotl, rotr, ch, maj} from "./primitives32.ts"
+import { rotl, rotr, ch, maj, Sigma, sigma } from "./primitives32.ts"
 
 // most logical operator interpret values as 32-bit signed, but unsigned is easier to interpret.
 // it matters when presenting results, and it matters when asserting results, then "sign-ness" should be correct
@@ -209,3 +209,27 @@ paramtest("maj 32", maj_data, (param: TripletTestParams) => {
     assertEquals(maj(param.x, param.y, param.z), param.res);
   }
 }, tripletTestCaseFormatter)
+
+Deno.test("Sigma highend", ()=>{
+  let fn_Sigma = Sigma(1,4,8);
+
+  assertEquals(fn_Sigma(0xffff0000), 0x70ff8f00);
+})
+
+Deno.test("Sigma lowend", ()=>{
+  let fn_Sigma = Sigma(1,4,8);
+
+  assertEquals(fn_Sigma(0x0000ffff), toInt32(0x8f0070ff));
+})
+
+Deno.test("sigma highend", ()=>{
+  let fn_sigma = sigma(1,4,8);
+
+  assertEquals(fn_sigma(0xffff0000), 0x70ff8f00);
+})
+
+Deno.test("sigma lowend", ()=>{
+  let fn_sigma = sigma(1,4,8);
+
+  assertEquals(fn_sigma(0x0000ffff), 0x700070ff);
+})

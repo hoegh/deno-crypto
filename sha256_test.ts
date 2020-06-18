@@ -4,21 +4,21 @@ import { encode } from "https://deno.land/std/encoding/utf8.ts";
 
 import { readFileStr } from 'https://deno.land/std/fs/read_file_str.ts';
 
-import { sha1, sha1Sync } from "./sha1.ts";
+import { sha256, sha256Sync } from "./sha256.ts";
 import { asynchify } from "./test_helpers.ts";
 import { splitIntoBlocks } from "./block_splitter.ts";
 
 
-// short examples taken from https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA1.pdf
+// short examples taken from https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/SHA256.pdf
 
-Deno.test("SHA1 Example: One Block Message Sample", () => {
-  let result = sha1Sync(encode("abc"));
-  assertEquals(result, decodeString("A9993E364706816ABA3E25717850C26C9CD0D89D"));
+Deno.test("SHA256 Example: One Block Message Sample", () => {
+  let result = sha256Sync(encode("abc"));
+  assertEquals(result, decodeString("BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD"));
 })
 
-Deno.test("SHA1 Example: Two Block Message Sample", async () => {
-  let result = await sha1(asynchify([encode("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")]));
-  assertEquals(result, decodeString("84983E441C3BD26EBAAE4AA1F95129E5E54670F1"));
+Deno.test("SHA256 Example: Two Block Message Sample", async () => {
+  let result = await sha256(asynchify([encode("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")]));
+  assertEquals(result, decodeString("248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1"));
 })
 
 
@@ -26,13 +26,13 @@ Deno.test("SHA1 Example: Two Block Message Sample", async () => {
 //---
 // tests based on SHA byte test vectors: https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/shs/shabytetestvectors.zip
 
-const sha1_shortmessage_testdata = await readFileStr("shabytetestvectors/SHA1ShortMsg.rsp");
-const sha1_longmessage_testdata = await readFileStr("shabytetestvectors/SHA1LongMsg.rsp");
+const sha256_shortmessage_testdata = await readFileStr("shabytetestvectors/SHA256ShortMsg.rsp");
+const sha256_longmessage_testdata = await readFileStr("shabytetestvectors/SHA256LongMsg.rsp");
 
 function syncTestFactory(msg: string, digest: string) {
   return ()=> {
     let input = decodeString(msg);
-    let result = sha1Sync(input);
+    let result = sha256Sync(input);
     assertEquals(encodeToString(result), digest);
   }
 }
@@ -40,7 +40,7 @@ function syncTestFactory(msg: string, digest: string) {
 function testFactory(msg: string, digest: string) {
   return async ()=> {
     let input = asynchify(splitIntoBlocks(decodeString(msg), 768)); //split the input into chuncks not always aligned with blocksize
-    let result = await sha1(input);
+    let result = await sha256(input);
     assertEquals(encodeToString(result), digest);
   }
 }
@@ -71,7 +71,7 @@ function shabytest(suite: string, testdata: string, testfactory: (msg: string, d
   }
 };
 
-shabytest("SHA-1 ShortMsg", sha1_shortmessage_testdata, syncTestFactory);
-shabytest("SHA-1 async ShortMsg", sha1_shortmessage_testdata, testFactory);
-shabytest("SHA-1 LongMsg", sha1_longmessage_testdata, syncTestFactory);
-shabytest("SHA-1 async LongMsg", sha1_longmessage_testdata, testFactory);
+shabytest("SHA-256 ShortMsg", sha256_shortmessage_testdata, syncTestFactory);
+shabytest("SHA-256 async ShortMsg", sha256_shortmessage_testdata, testFactory);
+shabytest("SHA-256 LongMsg", sha256_longmessage_testdata, syncTestFactory);
+shabytest("SHA-256 async LongMsg", sha256_longmessage_testdata, testFactory);
