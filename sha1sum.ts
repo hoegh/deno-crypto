@@ -1,5 +1,5 @@
 import { encodeToString } from "https://deno.land/std/encoding/hex.ts";
-import { sha1 } from "./sha1.ts"
+import { sha, SHA1 } from "./sha.ts"
 
 const filenames = Deno.args;
 for (const filename of filenames) {
@@ -10,7 +10,7 @@ for (const filename of filenames) {
       bufSize: 1024 * 1024
     });
 
-    const hash = await sha1(iter);
+    const hash = await sha(SHA1, iter);
     const hashHex = encodeToString(hash);
 
     Deno.close(file.rid);

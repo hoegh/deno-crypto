@@ -1,4 +1,4 @@
-import { splitIntoBlocks } from "./block_splitter.ts"
+import { splitBytesIntoBlocks } from "./block_splitter.ts"
 
 /** The size of the message length counter added to the end of the padding */
 export enum LengthSize {
@@ -35,7 +35,7 @@ export function* shapad(iter: Iterable<number>, blockSize: number, lengthSize: L
   var count = initialCount;
 
   var lastBlock;
-  for(let block of splitIntoBlocks(iter, blockSize)) {
+  for(let block of splitBytesIntoBlocks(iter, blockSize)) {
     count += BigInt(block.length);
     if (block.length==blockSize) {
       yield block;

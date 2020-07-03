@@ -1,17 +1,14 @@
 import {rotl, ch, maj} from "./primitives32.ts"
 import {parity} from "./primitives_sha1.ts"
 
-import {splitIntoBlocks, join} from "./block_splitter.ts"
-import {shapad, LengthSize} from "./padder.ts"
-import {convert8to32, convert32to8} from "./converters.ts"
+import {convert8to32} from "./converters.ts"
 
 const a=0, b=1, c=2, d=3, e=4, T=5;
 
-const blockLength = 64;
-const blockLengthN = 64n;
 const roundCount = 80;
 
-const h0 = new Uint32Array([0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]);
+export const sha1_h0 =() => new Uint32Array([0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]);
+
 const k = function() {
   let k = new Uint32Array(roundCount);
   k.fill(0x5a827999, 0, 20);
@@ -46,7 +43,7 @@ function messageSchedule (m: Uint8Array): Uint32Array {
   return w;
 }
 
-function sha1_block(h: Uint32Array, m: Uint8Array): Uint32Array {
+export function sha1_block(h: Uint32Array, m: Uint8Array): Uint32Array {
   let w = messageSchedule(m);
   let vars = new Uint32Array(6);
 
@@ -66,49 +63,4 @@ function sha1_block(h: Uint32Array, m: Uint8Array): Uint32Array {
   }
 
   return vars.slice(0,5);
-}
-
-/**
- * Calculates a SHA1 hash over an iterator of uint8 numbers.
- */
-export function sha1Sync(msg: Iterable<number>): Uint8Array {
-  let dataBlocks = shapad(msg, blockLength, LengthSize.Len64Bits);
-
-  var h = h0.slice();
-  for(let block of dataBlocks) {
-    h = sha1_block(h, block);
-  }
-
-  return convert32to8(h);
-}
-
-/**
- * Asynchronously calculates a SHA1 hash over iterator of Uint8Array buffers.
- */
-export async function sha1(msg: AsyncIterable<Uint8Array>) {
-  let count = 0n;
-  let rest = new Uint8Array(0);
-
-  var h = h0.slice();
-  for await (let msgPart of msg) {
-    let dataBlocks = splitIntoBlocks(join(rest, msgPart), blockLength);
-    rest = new Uint8Array(0); //will be overwritten if there a short block to carry over
-
-    for(let block of dataBlocks) {
-      if (block.length == blockLength) {
-        h = sha1_block(h, block);
-        count += blockLengthN;
-      } else {
-        // if the last block is of insufficient length, it should carry over
-        rest = block;
-      }
-    }
-  }
-
-  //pad last block with length info (or, if everything adds up, add an extra block with padding + length)
-  for (let block of shapad(rest, blockLength, LengthSize.Len64Bits, count)) {
-    h = sha1_block(h, block);
-  }
-
-  return convert32to8(h);
 }
