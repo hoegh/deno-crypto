@@ -2,7 +2,7 @@
 shabytetestvectors/*Monte.*
 shabytetestvectors/SHA224*
 shabytetestvectors/SHA384*
-shabytetestvectors/SHA512*
+shabytetestvectors/SHA512_*
 
 # ignores due to Atom plugin for Deno
 node_modules

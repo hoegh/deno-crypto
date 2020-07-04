@@ -1,56 +1,72 @@
 import {shapad, LengthSize} from "./padder.ts"
-import {convert32to8} from "./converters.ts"
+import {convert32to8, convert64to8} from "./converters.ts"
 import {splitBlocksIntoBlocks} from "./block_splitter.ts"
 
 import {sha1_h0, sha1_block} from "./sha1.ts"
 import {sha256_h0, sha256_block} from "./sha256.ts"
+import {sha512_h0, sha512_block} from "./sha512.ts"
 
-const blockLength = 64;
-const blockLengthN = 64n;
+type shaBlockFunc<T> = (h: T, m: Uint8Array) => T
 
-type shaBlockFunc = (h: Uint32Array, m: Uint8Array) => Uint32Array
-
-export interface ShaParams{
-  shaFunc: shaBlockFunc;
-  h0: () => Uint32Array;
+export interface ShaParams<T>{
+  shaFunc: shaBlockFunc<T>;
+  h0: () => T;
+  blockLength: number,
+  lengthSize: LengthSize;
+  converter: (a:T) => Uint8Array;
 }
 
 /** parameters for SHA-1 */
-export const SHA1: ShaParams = {
+export const SHA1: ShaParams<Uint32Array> = {
   shaFunc: sha1_block,
-  h0: sha1_h0
+  h0: sha1_h0,
+  blockLength: 64,
+  lengthSize: LengthSize.Len64Bits,
+  converter: convert32to8
 }
 
 /** parameters for SHA-256 */
-export const SHA256: ShaParams = {
+export const SHA256: ShaParams<Uint32Array> = {
   shaFunc: sha256_block,
-  h0: sha256_h0
+  h0: sha256_h0,
+  blockLength: 64,
+  lengthSize: LengthSize.Len64Bits,
+  converter: convert32to8
 }
 
-function shaSyncFunc(params: ShaParams) {
+export const SHA512: ShaParams<BigUint64Array> = {
+  shaFunc: sha512_block,
+  h0: sha512_h0,
+  blockLength: 128,
+  lengthSize: LengthSize.Len128Bits,
+  converter: convert64to8
+}
+
+function shaSyncFunc<T>(params: ShaParams<T>) {
   return (msg: Iterable<number>) => {
-    let dataBlocks = shapad(msg, blockLength, LengthSize.Len64Bits);
+    let dataBlocks = shapad(msg, params.blockLength, params.lengthSize);
 
     var h = params.h0();
     for(let block of dataBlocks) {
       h = params.shaFunc(h, block);
     }
 
-    return convert32to8(h);
+    return params.converter(h);
   }
 }
 
-function shaFunc(params: ShaParams) {
+function shaFunc<T>(params: ShaParams<T>) {
+  let blockLengthN = BigInt(params.blockLength);
   return async (msg: AsyncIterable<Uint8Array>) => {
     let count = 0n;
     let rest = new Uint8Array(0);
 
     var h = params.h0();
-    let dataBlocks = splitBlocksIntoBlocks(msg, blockLength);
+    let dataBlocks = splitBlocksIntoBlocks(msg, params.blockLength);
     rest = new Uint8Array(0); //will be overwritten if there a short block to carry over
 
     for await (let block of dataBlocks) {
-      if (block.length == blockLength) {
+      if (block.length == params.blockLength) {
         h = params.shaFunc(h, block);
         count += blockLengthN;
       } else {
@@ -60,20 +76,20 @@ function shaFunc(params: ShaParams) {
     }
 
     //pad last block with length info (or, if everything adds up, add an extra block with padding + length)
-    for (let block of shapad(rest, blockLength, LengthSize.Len64Bits, count)) {
+    for (let block of shapad(rest, params.blockLength, params.lengthSize, count)) {
       h = params.shaFunc(h, block);
     }
 
-    return convert32to8(h);
+    return params.converter(h);
   }
 }
 
 /**
  * Calculates a hash over an iterator of uint8 numbers.
  */
-export let shaSync = (params: ShaParams, msg: Iterable<number>) => shaSyncFunc(params)(msg);
+export let shaSync = <T>(params: ShaParams<T>, msg: Iterable<number>) => shaSyncFunc(params)(msg);
 
 /**
  * Asynchronously calculates a hash over iterator of Uint8Array buffers.
  */
-export let sha = (params: ShaParams, msg: AsyncIterable<Uint8Array>) => shaFunc(params)(msg);
+export let sha = <T>(params: ShaParams<T>, msg: AsyncIterable<Uint8Array>) => shaFunc(params)(msg);

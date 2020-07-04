@@ -5,9 +5,9 @@ import { readFileStr } from 'https://deno.land/std/fs/read_file_str.ts';
 import { asynchify } from "./test_helpers.ts";
 import { splitBytesIntoBlocks } from "./block_splitter.ts";
 
-import { sha, shaSync, ShaParams, SHA1, SHA256 } from "./sha.ts";
+import { sha, shaSync, ShaParams, SHA1, SHA256, SHA512 } from "./sha.ts";
 
-export function shabytest(suite: string, testdata: string, sha: ShaParams, testfactory: (sha: ShaParams, msg: string, digest: string) => ()=>void) {
+export function shabytest<T>(suite: string, testdata: string, sha: ShaParams<T>, testfactory: (sha: ShaParams<T>, msg: string, digest: string) => ()=>void) {
   var name: string = "";
   var msg: string="";
   var digest: string="";
@@ -33,7 +33,7 @@ export function shabytest(suite: string, testdata: string, sha: ShaParams, testf
   }
 };
 
-function syncTestFactory(shaParams: ShaParams, msg: string, digest: string) {
+function syncTestFactory<T>(shaParams: ShaParams<T>, msg: string, digest: string) {
   return ()=> {
     let input = decodeString(msg);
     let result = shaSync(shaParams, input);
@@ -41,7 +41,7 @@ function syncTestFactory(shaParams: ShaParams, msg: string, digest: string) {
   }
 }
 
-function testFactory(shaParams: ShaParams, msg: string, digest: string) {
+function testFactory<T>(shaParams: ShaParams<T>, msg: string, digest: string) {
   return async ()=> {
     let input = asynchify(splitBytesIntoBlocks(decodeString(msg), 768)); //split the input into chuncks not always aligned with blocksize
     let result = await sha(shaParams, input);
@@ -60,11 +60,6 @@ shabytest("SHA-1 async ShortMsg", sha1_shortmessage_testdata, SHA1, testFactory)
 shabytest("SHA-1 LongMsg", sha1_longmessage_testdata, SHA1, syncTestFactory);
 shabytest("SHA-1 async LongMsg", sha1_longmessage_testdata, SHA1, testFactory);
 
-
-
-//---
-// tests based on SHA byte test vectors: https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/shs/shabytetestvectors.zip
-
 const sha256_shortmessage_testdata = await readFileStr("shabytetestvectors/SHA256ShortMsg.rsp");
 const sha256_longmessage_testdata = await readFileStr("shabytetestvectors/SHA256LongMsg.rsp");
 
@@ -72,3 +67,11 @@ shabytest("SHA-256 ShortMsg", sha256_shortmessage_testdata, SHA256, syncTestFact
 shabytest("SHA-256 async ShortMsg", sha256_shortmessage_testdata, SHA256, testFactory);
 shabytest("SHA-256 LongMsg", sha256_longmessage_testdata, SHA256, syncTestFactory);
 shabytest("SHA-256 async LongMsg", sha256_longmessage_testdata, SHA256, testFactory);
+
+const sha512_shortmessage_testdata = await readFileStr("shabytetestvectors/SHA512ShortMsg.rsp");
+const sha512_longmessage_testdata = await readFileStr("shabytetestvectors/SHA512LongMsg.rsp");
+
+shabytest("SHA-512 ShortMsg", sha512_shortmessage_testdata, SHA512, syncTestFactory);
+shabytest("SHA-512 async ShortMsg", sha512_shortmessage_testdata, SHA512, testFactory);
+shabytest("SHA-512 LongMsg", sha512_longmessage_testdata, SHA512, syncTestFactory);
+shabytest("SHA-512 async LongMsg", sha512_longmessage_testdata, SHA512, testFactory);

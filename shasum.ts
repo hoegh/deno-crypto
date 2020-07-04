@@ -2,7 +2,7 @@ import { encodeToString } from "https://deno.land/std/encoding/hex.ts";
 
 import { sha, ShaParams } from "./sha.ts"
 
-export async function shasum(shaParam: ShaParams, filenames: string[]) {
+export async function shasum<T>(shaParam: ShaParams<T>, filenames: string[]) {
   for (const filename of filenames) {
     const filestat = await Deno.stat(filename);
     if (filestat.isFile) {
